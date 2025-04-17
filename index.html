@@ -3,31 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>快速视频发布助手</title>
+    <title>快速视频发布助手 | 一键打开所有视频平台</title>
+    <meta name="description" content="视频创作者的必备工具，一键打开所有视频发布平台，提高发布效率">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <meta name="theme-color" content="#3f51b5">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>快速视频发布助手</h1>
-            <p>一键打开所有视频发布平台，提高您的发布效率</p>
+            <p>一键打开所有视频发布平台，让您的创作更高效</p>
         </header>
 
         <main>
             <section class="config-section">
-                <h2>配置视频网站</h2>
+                <h2>配置视频网站 <span class="shortcut-hint" title="快捷键：Alt+A 聚焦到添加框">Alt+A</span></h2>
                 <div class="site-list" id="siteList">
                     <!-- 站点列表将通过JS动态生成 -->
                 </div>
                 <div class="add-site">
-                    <input type="text" id="siteName" placeholder="网站名称">
-                    <input type="url" id="siteUrl" placeholder="网站链接 (https://...)">
+                    <input type="text" id="siteName" placeholder="输入网站名称 (如: Bilibili)" autocomplete="off">
+                    <input type="url" id="siteUrl" placeholder="输入网站链接 (https://...)" autocomplete="off">
                     <button id="addSiteBtn">添加网站</button>
                 </div>
             </section>
 
             <section class="actions-section">
-                <button id="openAllBtn" class="primary-btn">立即打开所有网站</button>
+                <button id="openAllBtn" class="primary-btn">一键打开所有视频网站</button>
+                <p class="tip">点击后将在新浏览器中打开所有配置的视频网站，无需确认</p>
                 <div class="config-actions">
                     <button id="exportConfigBtn">导出配置</button>
                     <label for="importConfigInput" class="import-label">导入配置
@@ -39,6 +43,7 @@
 
         <footer>
             <p>© 2023 快速视频发布助手 | <a href="https://github.com/yourusername/quick_release_video" target="_blank">GitHub</a></p>
+            <p class="shortcuts-info">快捷键: <span class="shortcut-hint">Alt+O</span> 打开所有网站 | <span class="shortcut-hint">Alt+A</span> 添加新网站</p>
         </footer>
     </div>
 
