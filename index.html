@@ -37,6 +37,12 @@
                     <label for="importConfigInput" class="import-label">导入配置
                         <input type="file" id="importConfigInput" accept=".json">
                     </label>
+                    <button id="syncConfigBtn" class="sync-btn" title="配置云同步">
+                        <span class="sync-icon">☁️</span> 云同步设置
+                    </button>
+                    <button id="manualSyncBtn" class="secondary-btn" style="display: none;">
+                        <span class="sync-icon">🔄</span> 立即同步
+                    </button>
                 </div>
             </section>
         </main>
@@ -47,6 +53,53 @@
         </footer>
     </div>
 
+    <!-- WebDAV配置对话框 -->
+    <div id="webdavDialog" class="dialog">
+        <div class="dialog-content">
+            <h2>云同步设置 <span class="sync-status-icon">☁️</span></h2>
+            <p class="dialog-description">
+                通过WebDAV同步您的配置到云端，支持坚果云等WebDAV服务。
+                <a href="cloud-sync-guide.md" id="helpLink" target="_blank">查看配置教程</a>
+            </p>
+            
+            <div class="form-group">
+                <label for="webdavServer">WebDAV服务器地址</label>
+                <input type="url" id="webdavServer" placeholder="https://dav.jianguoyun.com/dav/">
+            </div>
+            
+            <div class="form-group">
+                <label for="webdavUsername">账号</label>
+                <input type="text" id="webdavUsername" placeholder="您的WebDAV账号">
+            </div>
+            
+            <div class="form-group">
+                <label for="webdavPassword">密码/应用密码</label>
+                <input type="password" id="webdavPassword" placeholder="您的WebDAV密码">
+                <small class="form-tip">* 建议使用应用专用密码</small>
+            </div>
+
+            <div class="sync-info">
+                <div class="auto-sync-toggle">
+                    <label>
+                        <input type="checkbox" id="autoSyncEnabled" checked>
+                        自动同步
+                    </label>
+                    <small class="form-tip">启用后，每次修改配置时会自动同步到云端</small>
+                </div>
+            </div>
+
+            <div id="syncStatus" class="sync-status"></div>
+            
+            <div class="dialog-buttons">
+                <button id="testWebdavBtn">测试连接</button>
+                <button id="saveWebdavBtn" class="primary">保存设置</button>
+                <button id="closeWebdavBtn">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 先加载WebDAV同步功能，再加载主应用 -->
+    <script src="js/webdav-sync.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html> 

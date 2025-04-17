@@ -17,6 +17,19 @@ const openAllBtn = document.getElementById('openAllBtn');
 const exportConfigBtn = document.getElementById('exportConfigBtn');
 const importConfigInput = document.getElementById('importConfigInput');
 
+// WebDAV同步相关元素
+const syncConfigBtn = document.getElementById('syncConfigBtn');
+const webdavDialog = document.getElementById('webdavDialog');
+const webdavServer = document.getElementById('webdavServer');
+const webdavUsername = document.getElementById('webdavUsername');
+const webdavPassword = document.getElementById('webdavPassword');
+const testWebdavBtn = document.getElementById('testWebdavBtn');
+const saveWebdavBtn = document.getElementById('saveWebdavBtn');
+const closeWebdavBtn = document.getElementById('closeWebdavBtn');
+const syncStatus = document.getElementById('syncStatus');
+const autoSyncCheckbox = document.getElementById('autoSyncEnabled');
+const manualSyncBtn = document.getElementById('manualSyncBtn');
+
 // 存储网站配置的数组
 let sites = [];
 
@@ -51,6 +64,12 @@ function initApp() {
     
     // 显示欢迎提示（如果是首次使用）
     showWelcomeTipIfNeeded();
+    
+    // 初始化WebDAV配置
+    initWebDAV();
+    
+    // 更新帮助链接
+    document.getElementById('helpLink').href = 'cloud-sync-guide.md';
 }
 
 // 从本地存储加载配置
@@ -66,9 +85,11 @@ function loadSitesFromLocalStorage() {
 }
 
 // 保存配置到本地存储
-function saveSitesToLocalStorage() {
+async function saveSitesToLocalStorage() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(sites));
+        // 只在站点列表变更时触发自动同步
+        await autoSync();
         return true;
     } catch (error) {
         console.error('保存配置失败:', error);
@@ -159,6 +180,7 @@ function renderSiteList() {
     
     if (sites.length === 0) {
         renderEmptySuggestions();
+        updateOpenButtonState(); // 确保在列表为空时更新按钮状态
         return;
     }
     
@@ -242,7 +264,7 @@ function updateOpenButtonState() {
         openAllBtn.textContent = `一键打开全部 ${sites.length} 个网站`;
         openAllBtn.classList.remove('disabled');
     } else {
-        openAllBtn.textContent = '一键打开所有视频网站';
+        openAllBtn.textContent = '一键打开全部网站';
         openAllBtn.classList.add('disabled');
     }
 }
@@ -313,7 +335,7 @@ function cancelEdit() {
 }
 
 // 添加网站
-function addSite() {
+async function addSite() {
     const name = siteNameInput.value.trim();
     let url = siteUrlInput.value.trim();
     
@@ -349,7 +371,7 @@ function addSite() {
         sites[editIndex] = { name, url };
         
         // 保存并刷新
-        if (saveSitesToLocalStorage()) {
+        if (await saveSitesToLocalStorage()) {
             renderSiteList();
             
             // 重置表单和按钮
@@ -375,7 +397,7 @@ function addSite() {
     sites.push({ name, url });
     
     // 保存并刷新
-    if (saveSitesToLocalStorage()) {
+    if (await saveSitesToLocalStorage()) {
         renderSiteList();
         
         // 显示成功提示
@@ -801,5 +823,246 @@ function addEventListeners() {
     });
 }
 
-// 初始化应用
-document.addEventListener('DOMContentLoaded', initApp); 
+// 显示同步状态
+function showSyncStatus(message, type = 'info') {
+    syncStatus.textContent = message;
+    syncStatus.className = 'sync-status ' + type;
+    setTimeout(() => {
+        syncStatus.className = 'sync-status';
+    }, 5000);
+}
+
+// 初始化WebDAV配置
+function initWebDAV() {
+    const manualSyncBtn = document.getElementById('manualSyncBtn');
+    
+    // 检查WebDAV配置状态
+    if (window.webDAVSync.config.syncEnabled) {
+        webdavServer.value = window.webDAVSync.config.server;
+        webdavUsername.value = window.webDAVSync.config.username;
+        webdavPassword.value = window.webDAVSync.config.password;
+        autoSyncCheckbox.checked = window.webDAVSync.isAutoSyncEnabled();
+        
+        // 更新UI状态
+        syncConfigBtn.classList.add('active');
+        manualSyncBtn.style.display = 'inline-flex';
+        
+        // 在主界面显示手动同步按钮
+        const configActions = document.querySelector('.config-actions');
+        if (configActions && !configActions.contains(manualSyncBtn)) {
+            configActions.appendChild(manualSyncBtn);
+        }
+    }
+}
+
+// 打开WebDAV配置对话框
+syncConfigBtn.addEventListener('click', () => {
+    webdavDialog.classList.add('show');
+    initWebDAV();
+});
+
+// 关闭对话框
+closeWebdavBtn.addEventListener('click', () => {
+    webdavDialog.classList.remove('show');
+});
+
+// 点击对话框外部关闭
+webdavDialog.addEventListener('click', (e) => {
+    if (e.target === webdavDialog) {
+        webdavDialog.classList.remove('show');
+    }
+});
+
+// 自动同步开关
+autoSyncCheckbox.addEventListener('change', (e) => {
+    window.webDAVSync.setAutoSync(e.target.checked);
+    showSyncStatus(e.target.checked ? '已开启自动同步' : '已关闭自动同步', 'info');
+});
+
+// 手动同步按钮事件处理
+manualSyncBtn.addEventListener('click', async () => {
+    if (!window.webDAVSync.config.syncEnabled) {
+        showToast('请先配置WebDAV设置');
+        return;
+    }
+
+    try {
+        // 显示同步中状态
+        manualSyncBtn.disabled = true;
+        manualSyncBtn.classList.add('syncing');
+        showToast('正在同步配置到云端...');
+        
+        // 执行同步
+        await window.webDAVSync.uploadConfig(sites);
+        
+        // 显示成功消息
+        showToast('云同步成功！配置已保存到云端');
+    } catch (error) {
+        // 显示错误消息
+        showToast('云同步失败: ' + error.message);
+    } finally {
+        // 恢复按钮状态
+        manualSyncBtn.disabled = false;
+        manualSyncBtn.classList.remove('syncing');
+    }
+});
+
+// 在保存配置时自动同步
+async function autoSync() {
+    // 检查是否启用了自动同步
+    if (!window.webDAVSync.config.syncEnabled || !window.webDAVSync.isAutoSyncEnabled()) {
+        return;
+    }
+    
+    try {
+        syncConfigBtn.classList.add('syncing');
+        showToast('正在自动同步到云端...');
+        await window.webDAVSync.uploadConfig(sites);
+        showToast('自动同步成功！配置已保存到云端');
+    } catch (error) {
+        console.error('自动同步失败:', error);
+        showToast('自动同步失败: ' + error.message);
+    } finally {
+        syncConfigBtn.classList.remove('syncing');
+    }
+}
+
+// 添加从云端恢复配置的功能
+async function restoreFromCloud() {
+    if (!window.webDAVSync.config.syncEnabled) return;
+    
+    try {
+        const cloudConfig = await window.webDAVSync.downloadConfig();
+        if (cloudConfig && Array.isArray(cloudConfig)) {
+            sites = cloudConfig;
+            saveSitesToLocalStorage();
+            renderSiteList();
+            showToast('已从云端恢复配置');
+        }
+    } catch (error) {
+        console.error('从云端恢复配置失败:', error);
+        showToast('恢复失败: ' + error.message);
+    }
+}
+
+// 在页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    initApp();
+    // 尝试从云端恢复配置
+    restoreFromCloud().catch(error => {
+        console.error('从云端恢复配置失败:', error);
+    });
+});
+
+// 保存WebDAV配置的逻辑
+saveWebdavBtn.addEventListener('click', async () => {
+    const server = webdavServer.value.trim();
+    const username = webdavUsername.value.trim();
+    const password = webdavPassword.value.trim();
+    const autoSync = autoSyncCheckbox.checked;
+
+    if (!server || !username || !password) {
+        showSyncStatus('请填写完整的WebDAV配置信息', 'error');
+        return;
+    }
+
+    // 禁用保存按钮，显示加载状态
+    saveWebdavBtn.disabled = true;
+    saveWebdavBtn.textContent = '保存中...';
+    showSyncStatus('正在测试连接...', 'info');
+
+    try {
+        // 临时配置用于测试
+        const tempConfig = {
+            server: server.endsWith('/') ? server : server + '/',
+            username,
+            password,
+            syncEnabled: true
+        };
+        
+        // 设置临时配置进行测试
+        window.webDAVSync.config = tempConfig;
+        
+        // 测试连接
+        await window.webDAVSync.testConnection();
+        
+        // 保存配置
+        window.webDAVSync.saveConfig(server, username, password, autoSync);
+        
+        // 显示手动同步按钮
+        const manualSyncBtn = document.getElementById('manualSyncBtn');
+        manualSyncBtn.style.display = 'inline-flex';
+        
+        // 确保手动同步按钮在主界面显示
+        const configActions = document.querySelector('.config-actions');
+        if (configActions && !configActions.contains(manualSyncBtn)) {
+            configActions.appendChild(manualSyncBtn);
+        }
+        
+        showSyncStatus('WebDAV配置已保存', 'success');
+        syncConfigBtn.classList.add('active');
+        
+        // 关闭对话框
+        setTimeout(() => {
+            webdavDialog.classList.remove('show');
+        }, 1000);
+    } catch (error) {
+        showSyncStatus('配置测试失败: ' + error.message, 'error');
+    } finally {
+        // 恢复保存按钮状态
+        saveWebdavBtn.disabled = false;
+        saveWebdavBtn.textContent = '保存设置';
+    }
+});
+
+// 清除WebDAV配置时不隐藏手动同步按钮
+function clearWebDAVConfig() {
+    window.webDAVSync.clearConfig();
+    syncConfigBtn.classList.remove('active');
+    
+    // 重置表单
+    webdavServer.value = '';
+    webdavUsername.value = '';
+    webdavPassword.value = '';
+    autoSyncCheckbox.checked = true;
+}
+
+// 测试WebDAV连接
+testWebdavBtn.addEventListener('click', async () => {
+    const server = webdavServer.value.trim();
+    const username = webdavUsername.value.trim();
+    const password = webdavPassword.value.trim();
+
+    if (!server || !username || !password) {
+        showSyncStatus('请填写完整的WebDAV配置信息', 'error');
+        return;
+    }
+
+    try {
+        // 临时设置配置进行测试
+        const tempConfig = {
+            server: server.endsWith('/') ? server : server + '/',
+            username,
+            password
+        };
+        
+        // 保存当前配置
+        const originalConfig = { ...window.webDAVSync.config };
+        
+        // 设置临时配置
+        window.webDAVSync.config = { ...tempConfig, syncEnabled: true };
+        
+        // 显示测试中状态
+        showSyncStatus('正在测试连接...', 'info');
+        testWebdavBtn.disabled = true;
+        
+        // 测试连接
+        await window.webDAVSync.testConnection();
+        
+        showSyncStatus('连接测试成功！', 'success');
+    } catch (error) {
+        showSyncStatus('连接测试失败: ' + error.message, 'error');
+    } finally {
+        testWebdavBtn.disabled = false;
+    }
+}); 
