@@ -155,64 +155,106 @@ main:before {
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* 网站项 */
 .site-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    background-color: #f8f9fa;
-    border-radius: var(--border-radius);
-    margin-bottom: 12px;
-    transition: var(--transition);
-    border-left: 3px solid var(--primary-light);
+    padding: 15px;
+    margin-bottom: 10px;
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
 }
 
 .site-item:hover {
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     transform: translateY(-2px);
 }
 
 .site-info {
-    flex-grow: 1;
+    flex: 1;
+    overflow: hidden;
 }
 
 .site-name {
     font-weight: 600;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-    font-size: 1.05rem;
+    color: #3f51b5;
+    margin-bottom: 5px;
 }
 
 .site-url {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
+    font-size: 0.85rem;
+    color: #666;
     word-break: break-all;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
-.site-actions button {
-    background-color: transparent;
-    border: none;
-    color: var(--danger-color);
-    cursor: pointer;
-    padding: 8px;
-    font-size: 1rem;
-    border-radius: 50%;
-    width: 38px;
-    height: 38px;
+.site-actions {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: var(--transition);
+    gap: 8px;
 }
 
-.site-actions button:hover {
+.delete-btn {
+    background: url('../img/delete-icon.svg') no-repeat center;
+    background-size: 16px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+    opacity: 1;
     background-color: rgba(244, 67, 54, 0.1);
 }
 
-.site-actions button:before {
-    content: "×";
-    font-size: 1.4rem;
-    font-weight: bold;
+/* 编辑按钮 */
+.edit-btn {
+    background: url('../img/edit-icon.svg') no-repeat center;
+    background-size: 16px;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+
+.edit-btn:hover {
+    opacity: 1;
+    background-color: rgba(63, 81, 181, 0.1);
+}
+
+/* 取消编辑按钮 */
+.cancel-btn {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    color: #666;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+    background-color: #e0e0e0;
+}
+
+/* 编辑模式的添加按钮 */
+.add-site button.editing {
+    background-color: #4caf50;
+}
+
+.add-site button.editing:hover {
+    background-color: #388e3c;
 }
 
 .add-site {

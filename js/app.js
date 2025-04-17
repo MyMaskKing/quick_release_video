@@ -172,6 +172,7 @@ function renderSiteList() {
                 <div class="site-url">${escapeHtml(site.url)}</div>
             </div>
             <div class="site-actions">
+                <button data-index="${index}" class="edit-btn" title="编辑此网站"></button>
                 <button data-index="${index}" class="delete-btn" title="删除此网站"></button>
             </div>
         `;
@@ -183,6 +184,14 @@ function renderSiteList() {
         btn.addEventListener('click', function() {
             const index = parseInt(this.getAttribute('data-index'));
             deleteSite(index);
+        });
+    });
+    
+    // 添加编辑按钮事件监听
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.getAttribute('data-index'));
+            editSite(index);
         });
     });
     
@@ -248,6 +257,61 @@ function isValidUrl(url) {
     }
 }
 
+// 编辑网站
+function editSite(index) {
+    if (index < 0 || index >= sites.length) return;
+    
+    const site = sites[index];
+    
+    // 填充编辑表单
+    siteNameInput.value = site.name;
+    siteUrlInput.value = site.url;
+    
+    // 更改添加按钮为保存按钮
+    addSiteBtn.textContent = '保存修改';
+    addSiteBtn.classList.add('editing');
+    addSiteBtn.setAttribute('data-edit-index', index);
+    
+    // 聚焦到名称输入框
+    siteNameInput.focus();
+    
+    // 滚动到编辑区域
+    addSiteBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // 添加取消编辑按钮
+    if (!document.getElementById('cancelEditBtn')) {
+        const cancelBtn = document.createElement('button');
+        cancelBtn.id = 'cancelEditBtn';
+        cancelBtn.textContent = '取消';
+        cancelBtn.className = 'cancel-btn';
+        cancelBtn.addEventListener('click', cancelEdit);
+        
+        // 添加到DOM
+        addSiteBtn.parentNode.insertBefore(cancelBtn, addSiteBtn.nextSibling);
+    }
+}
+
+// 取消编辑
+function cancelEdit() {
+    // 重置表单
+    siteNameInput.value = '';
+    siteUrlInput.value = '';
+    
+    // 恢复添加按钮
+    addSiteBtn.textContent = '添加网站';
+    addSiteBtn.classList.remove('editing');
+    addSiteBtn.removeAttribute('data-edit-index');
+    
+    // 移除取消按钮
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    if (cancelBtn) {
+        cancelBtn.parentNode.removeChild(cancelBtn);
+    }
+    
+    // 聚焦到名称输入框
+    siteNameInput.focus();
+}
+
 // 添加网站
 function addSite() {
     const name = siteNameInput.value.trim();
@@ -269,6 +333,36 @@ function addSite() {
         showToast('请输入有效的网站链接');
         return;
     }
+    
+    // 检查是否是编辑模式
+    if (addSiteBtn.classList.contains('editing')) {
+        const editIndex = parseInt(addSiteBtn.getAttribute('data-edit-index'));
+        
+        // 检查是否与其他网站重复（不包括当前编辑的网站）
+        const isDuplicate = sites.some((site, index) => index !== editIndex && site.url === url);
+        if (isDuplicate) {
+            showToast('此网站已经添加过了');
+            return;
+        }
+        
+        // 更新站点数据
+        sites[editIndex] = { name, url };
+        
+        // 保存并刷新
+        if (saveSitesToLocalStorage()) {
+            renderSiteList();
+            
+            // 重置表单和按钮
+            cancelEdit();
+            
+            // 显示成功提示
+            showToast(`已成功更新 ${name}`);
+        }
+        
+        return;
+    }
+    
+    // 添加新网站模式
     
     // 检查是否有重复
     const isDuplicate = sites.some(site => site.url === url);
