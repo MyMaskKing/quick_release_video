@@ -866,13 +866,6 @@ closeWebdavBtn.addEventListener('click', () => {
     webdavDialog.classList.remove('show');
 });
 
-// 点击对话框外部关闭
-webdavDialog.addEventListener('click', (e) => {
-    if (e.target === webdavDialog) {
-        webdavDialog.classList.remove('show');
-    }
-});
-
 // 自动同步开关
 autoSyncCheckbox.addEventListener('change', (e) => {
     window.webDAVSync.setAutoSync(e.target.checked);
@@ -1038,31 +1031,39 @@ testWebdavBtn.addEventListener('click', async () => {
         return;
     }
 
+    // 提示用户可能的混合内容问题
+    if (window.location.protocol === 'https:' && server.startsWith('http://')) {
+        showSyncStatus('提示：您正在通过HTTPS访问网站，可能无法连接到HTTP的WebDAV服务。如果测试失败，请考虑使用HTTPS地址。', 'info');
+    }
+
     try {
-        // 临时设置配置进行测试
-        const tempConfig = {
-            server: server.endsWith('/') ? server : server + '/',
-            username,
-            password
-        };
-        
-        // 保存当前配置
-        const originalConfig = { ...window.webDAVSync.config };
-        
-        // 设置临时配置
-        window.webDAVSync.config = { ...tempConfig, syncEnabled: true };
-        
         // 显示测试中状态
         showSyncStatus('正在测试连接...', 'info');
         testWebdavBtn.disabled = true;
+        testWebdavBtn.textContent = '测试中...';
+        
+        // 创建临时WebDAV对象进行测试
+        const tempWebDAV = new WebDAVSync();
+        tempWebDAV.config = {
+            server: server.endsWith('/') ? server : server + '/',
+            username: username,
+            password: password,
+            syncEnabled: true
+        };
         
         // 测试连接
-        await window.webDAVSync.testConnection();
+        await tempWebDAV.testConnection();
         
-        showSyncStatus('连接测试成功！', 'success');
+        showSyncStatus('连接测试成功！用户名和密码验证通过', 'success');
     } catch (error) {
-        showSyncStatus('连接测试失败: ' + error.message, 'error');
+        // 自定义错误消息，特别处理混合内容错误
+        if (error.message.includes('Failed to fetch') && window.location.protocol === 'https:' && server.startsWith('http://')) {
+            showSyncStatus('连接测试失败：可能是由于混合内容限制。您正通过HTTPS访问此页面，浏览器阻止了HTTP的WebDAV连接。您可以尝试使用HTTPS的WebDAV地址，或在HTTP环境下使用此工具。', 'error');
+        } else {
+            showSyncStatus('连接测试失败: ' + error.message, 'error');
+        }
     } finally {
         testWebdavBtn.disabled = false;
+        testWebdavBtn.textContent = '测试连接';
     }
 }); 

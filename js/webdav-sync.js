@@ -18,6 +18,11 @@ class WebDAVSync {
         // 确保server以/结尾
         server = server.endsWith('/') ? server : server + '/';
         
+        // 不再强制使用HTTPS
+        // if (server.startsWith('http://')) {
+        //     server = server.replace('http://', 'https://');
+        // }
+        
         this.config.server = server;
         this.config.username = username;
         this.config.password = password;
@@ -99,13 +104,19 @@ class WebDAVSync {
             throw new Error('请填写完整的WebDAV配置信息');
         }
 
+        // 确保server以/结尾
+        const server = this.config.server.endsWith('/') ? this.config.server : this.config.server + '/';
+        
+        // 不再强制使用HTTPS
+        // const secureServer = server.startsWith('http://') ? server.replace('http://', 'https://') : server;
+
         const headers = {
-            'Authorization': this._createAuthHeader()
+            'Authorization': 'Basic ' + btoa(this.config.username + ':' + this.config.password)
         };
 
         try {
             // 首先尝试PROPFIND请求
-            let response = await fetch(this.config.server, {
+            const response = await fetch(server, {
                 method: 'PROPFIND',
                 headers: {
                     ...headers,
@@ -113,17 +124,15 @@ class WebDAVSync {
                 }
             });
 
-            // 检查响应状态
-            if (response.ok || response.status === 207) {
-                return true;
+            // 检查认证状态
+            if (response.status === 401) {
+                throw new Error('认证失败，用户名或密码不正确');
             }
 
-            // 如果PROPFIND失败，尝试OPTIONS请求
-            if (!response.ok) {
-                response = await fetch(this.config.server, {
-                    method: 'OPTIONS',
-                    headers: headers
-                });
+            // 检查响应状态
+            if (response.ok || response.status === 207) {
+                // 特别验证用户名和密码
+                return true;
             }
 
             // 特殊处理403错误
@@ -136,11 +145,7 @@ class WebDAVSync {
                 throw new Error('指定的WebDAV路径不存在，请检查服务器地址是否正确');
             }
 
-            if (!response.ok) {
-                throw new Error('服务器返回状态码: ' + response.status);
-            }
-
-            return true;
+            throw new Error('服务器返回状态码: ' + response.status);
         } catch (error) {
             console.error('连接测试失败:', error);
             if (error.message.includes('Failed to fetch')) {
@@ -196,6 +201,12 @@ class WebDAVSync {
             throw new Error('WebDAV同步未启用');
         }
 
+        // 不再强制使用HTTPS
+        // if (this.config.server.startsWith('http://')) {
+        //     this.config.server = this.config.server.replace('http://', 'https://');
+        //     localStorage.setItem('webdav_server', this.config.server);
+        // }
+
         const configData = JSON.stringify(sites, null, 2);
         const headers = {
             'Authorization': this._createAuthHeader(),
@@ -207,6 +218,7 @@ class WebDAVSync {
             await this._createDirectory();
 
             // 上传文件
+            console.log('上传文件到:', this.config.server + 'quick_release_video_config.json');
             const response = await fetch(this.config.server + 'quick_release_video_config.json', {
                 method: 'PUT',
                 headers: headers,
@@ -214,7 +226,11 @@ class WebDAVSync {
             });
 
             if (!response.ok) {
-                throw new Error('上传文件失败，状态码: ' + response.status);
+                if (response.status === 401) {
+                    throw new Error('认证失败，请检查用户名和密码是否正确');
+                } else {
+                    throw new Error('上传文件失败，状态码: ' + response.status);
+                }
             }
 
             return true;
@@ -230,11 +246,18 @@ class WebDAVSync {
             throw new Error('WebDAV同步未启用');
         }
 
+        // 不再强制使用HTTPS
+        // if (this.config.server.startsWith('http://')) {
+        //     this.config.server = this.config.server.replace('http://', 'https://');
+        //     localStorage.setItem('webdav_server', this.config.server);
+        // }
+
         const headers = {
             'Authorization': this._createAuthHeader()
         };
 
         try {
+            console.log('下载配置从:', this.config.server + 'quick_release_video_config.json');
             const response = await fetch(this.config.server + 'quick_release_video_config.json', {
                 method: 'GET',
                 headers: headers
@@ -243,9 +266,14 @@ class WebDAVSync {
             if (response.status === 404) {
                 // 文件不存在，返回空数组
                 return [];
+            } else if (response.status === 401) {
+                throw new Error('认证失败，请检查用户名和密码是否正确');
             }
 
-            await this._handleResponse(response);
+            if (!response.ok) {
+                throw new Error('下载配置失败，状态码: ' + response.status);
+            }
+
             return await response.json();
         } catch (error) {
             console.error('下载配置失败:', error);
